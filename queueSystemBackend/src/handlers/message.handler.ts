@@ -51,6 +51,27 @@ export const createResetQueueMessage = (): ServerMessage => {
   };
 };
 
+export const createNextTicketAssignedMessage = (
+  deskNumber: number,
+  forceNormalTicket: boolean,
+): ServerMessage => {
+  const ticket = ticketQueueService.assignNextTicket(
+    deskNumber,
+    forceNormalTicket,
+  );
+
+  if (!ticket) {
+    return {
+      type: "QUEUE_EMPTY",
+    };
+  }
+
+  return {
+    type: "NEXT_TICKET_ASSIGNED",
+    payload: { ticket: ticket },
+  };
+};
+
 export const handleMessage = (message: string): HandleResult => {
   try {
     const jsonData = JSON.parse(message);
@@ -78,7 +99,7 @@ export const handleMessage = (message: string): HandleResult => {
         const ticket = createNewTicketMessage(
           parsedResult.data.payload.isPreferential,
         );
-        
+
         response.personal.push(ticket);
         response.personal.push(createQueueStateMessage());
         response.broadcast.push(createQueueStateMessage());
@@ -92,7 +113,16 @@ export const handleMessage = (message: string): HandleResult => {
         return response;
 
       case "REQUEST_NEXT_TICKET":
-        return handleDeleteItem(payload);
+        const nextTicketMessage = createNextTicketAssignedMessage(
+          parsedResult.data.payload.deskNumber,
+          parsedResult.data.payload.forceNormalTicket,
+        );
+
+        response.personal.push(nextTicketMessage);
+        response.personal.push(createQueueStateMessage());
+        response.broadcast.push(createQueueStateMessage());
+
+        return response;
 
       case "RESET_QUEUE":
         const resetMessage = createResetQueueMessage();
