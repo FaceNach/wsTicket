@@ -1,61 +1,59 @@
-import { useNavigate } from 'react-router-dom';
-import { BigTicket } from '../components/BigTicket';
-import { Button } from '../components/Button';
-import { PageHeader } from '../components/PageHeader';
-import { Panel } from '../components/Panel';
-import { TicketCard } from '../components/TicketCard';
-import type { Ticket } from '../types/ticket';
-
-const previewDeskNumber = 1;
-
-const previewCurrentServing: Ticket = {
-  id: 'preview-current-serving',
-  prefix: 'A',
-  number: 24,
-  deskNumber: previewDeskNumber,
-  createdAt: new Date(),
-  servedAt: null,
-};
-
-const previewLastServedForDesk: Ticket[] = [
-  {
-    id: 'preview-served-1',
-    prefix: 'A',
-    number: 23,
-    deskNumber: previewDeskNumber,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-served-2',
-    prefix: 'A',
-    number: 22,
-    deskNumber: previewDeskNumber,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-served-3',
-    prefix: 'A',
-    number: 21,
-    deskNumber: previewDeskNumber,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-];
+import { useNavigate } from "react-router-dom";
+import { BigTicket } from "../components/BigTicket";
+import { Button } from "../components/Button";
+import { PageHeader } from "../components/PageHeader";
+import { Panel } from "../components/Panel";
+import { TicketCard } from "../components/TicketCard";
+import type { Ticket } from "../types/ticket";
+import { useParams } from "react-router";
+import { useSocketTicket } from "../hooks/useSocketTickets";
+import { useCallback, useEffect, useState } from "react";
+import type { ServerMessage } from "../types/socket.types";
 
 export function DeskPage() {
   const navigate = useNavigate();
-  const deskNumber = previewDeskNumber;
-  const currentServing = previewCurrentServing;
-  const lastServedForDesk = previewLastServedForDesk.slice(0, 8);
+
+  const { deskNumber } = useParams();
+  const { subscribeToMessages, getQueueState, requestNextTicket } =
+    useSocketTicket();
+
+  const [currentServing, setCurrentServing] = useState<Ticket | undefined>();
+  const [lastServedForDesk, setLastServedForDesk] = useState<Ticket[]>([]);
 
   const isServing = Boolean(currentServing);
-  const queueCount = 12;
+  const [queueCount, setQueueCount] = useState(0);
   const hasQueue = queueCount > 0;
 
+  const handleResponse = useCallback((response: ServerMessage) => {
+    switch (response.type) {
+      case "QUEUE_STATE":
+        console.log(response.payload.state.pendingTotal.combined);
+        setQueueCount(response.payload.state.pendingTotal.combined);
+        break;
+      case "NEXT_TICKET_ASSIGNED":
+        setCurrentServing(response.payload.ticket);
+        if (response.payload.ticket) {
+          setLastServedForDesk((prev) => [response.payload.ticket!, ...prev]);
+        }
+        break;
+
+      case "QUEUE_EMPTY":
+        alert("No hay tickets en cola");
+    }
+  }, []);
+
+  useEffect(() => {
+    return subscribeToMessages(handleResponse);
+  }, [subscribeToMessages, handleResponse]);
+
+  useEffect(() => {
+    if (queueCount === 0) {
+      getQueueState();
+    }
+  }, [queueCount, getQueueState]);
+
   function handleChangeDesk() {
-    navigate('/desk/select');
+    navigate("/desk/select");
   }
 
   return (
@@ -72,8 +70,19 @@ export function DeskPage() {
             description="Componentes típicos del operador."
             footer={
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Button type="button" className="w-full sm:w-auto" disabled>
+                <Button
+                  type="button"
+                  className="w-full sm:w-auto"
+                  onClick={() => requestNextTicket(+deskNumber!, false)}
+                >
                   Tomar siguiente ticket
+                </Button>
+                <Button
+                  type="button"
+                  className="w-full sm:w-auto bg-amber-800/25 text-amber-800"
+                  onClick={() => requestNextTicket(+deskNumber!, true)}
+                >
+                  Forzar normal
                 </Button>
                 <Button
                   type="button"
@@ -108,13 +117,13 @@ export function DeskPage() {
               <div className="text-xs font-semibold text-white/60">Estado</div>
               <div className="mt-1 text-sm text-white/75">
                 {isServing
-                  ? 'Atendiendo ahora.'
+                  ? "Atendiendo ahora."
                   : hasQueue
-                  ? 'Listo para tomar el siguiente ticket.'
-                  : 'No hay tickets en la cola.'}
+                    ? "Listo para tomar el siguiente ticket."
+                    : "No hay tickets en la cola."}
               </div>
               <div className="mt-3 text-xs text-white/60">
-                En cola:{' '}
+                En cola:{" "}
                 <span className="font-semibold text-white/80">
                   {queueCount}
                 </span>

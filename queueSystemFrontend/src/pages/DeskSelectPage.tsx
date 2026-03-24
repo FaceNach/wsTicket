@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '../components/Button';
-import { PageHeader } from '../components/PageHeader';
-import { Panel } from '../components/Panel';
-import { getDeskBadgeClassName } from '../utils/badge-class';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "../components/Button";
+import { PageHeader } from "../components/PageHeader";
+import { Panel } from "../components/Panel";
+import { getDeskBadgeClassName } from "../utils/badge-class";
 
 const deskOptions = [1, 2, 3, 4, 5, 6];
 
@@ -13,7 +13,7 @@ export function DeskSelectPage() {
 
   function handleContinue() {
     if (deskNumber == null) return;
-    navigate('/desk');
+    navigate(`/desk/${deskNumber}`);
   }
 
   return (
@@ -58,13 +58,13 @@ export function DeskSelectPage() {
                 <label
                   key={optionDeskNumber}
                   className={[
-                    'group flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-white/5 px-4 py-4 ring-1 transition',
+                    "group flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-white/5 px-4 py-4 ring-1 transition",
                     getDeskBadgeClassName(optionDeskNumber),
                     isSelected
-                      ? 'ring-white/40'
-                      : 'ring-white/10 hover:bg-white/10 hover:ring-white/20',
-                    'focus-within:ring-2 focus-within:ring-white/60',
-                  ].join(' ')}
+                      ? "ring-white/40"
+                      : "ring-white/10 hover:bg-white/10 hover:ring-white/20",
+                    "focus-within:ring-2 focus-within:ring-white/60",
+                  ].join(" ")}
                 >
                   <input
                     className="sr-only"
@@ -86,18 +86,18 @@ export function DeskSelectPage() {
 
                   <div
                     className={[
-                      'flex h-6 w-6 items-center justify-center rounded-full ring-1 transition',
+                      "flex h-6 w-6 items-center justify-center rounded-full ring-1 transition",
                       isSelected
-                        ? 'bg-white/15 ring-white/30'
-                        : 'bg-white/0 ring-white/15 group-hover:ring-white/25',
-                    ].join(' ')}
+                        ? "bg-white/15 ring-white/30"
+                        : "bg-white/0 ring-white/15 group-hover:ring-white/25",
+                    ].join(" ")}
                     aria-hidden="true"
                   >
                     <span
                       className={
                         isSelected
-                          ? 'text-sm text-white'
-                          : 'text-sm text-white/30'
+                          ? "text-sm text-white"
+                          : "text-sm text-white/30"
                       }
                     >
                       ✓

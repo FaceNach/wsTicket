@@ -1,80 +1,15 @@
-import { useMemo, useState } from 'react';
-import { Button } from '../components/Button';
-import { WeatherWidget } from '../components/WeatherWidget';
-import { YouTubePlayer } from '../components/YouTubePlayer';
-import type { Ticket } from '../types/ticket';
-import { useNow } from '../hooks/useNow';
-import { formatBoardDate, formatBoardTime } from '../utils/date-formatter';
-import { formatTicketLabel } from '../utils/tickets';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Button } from "../components/Button";
+import { WeatherWidget } from "../components/WeatherWidget";
+import { YouTubePlayer } from "../components/YouTubePlayer";
+import type { Ticket } from "../types/ticket";
+import { useNow } from "../hooks/useNow";
+import { formatBoardDate, formatBoardTime } from "../utils/date-formatter";
+import { formatTicketLabel } from "../utils/tickets";
+import { useSocketTicket } from "../hooks/useSocketTickets";
+import type { ServerMessage } from "../types/socket.types";
 
-const YOUTUBE_VIDEO_ID = 'dQw4w9WgXcQ';
-
-const servedTickets: Ticket[] = [
-  {
-    id: 'preview-1',
-    prefix: 'A',
-    number: 22,
-    deskNumber: 1,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-2',
-    prefix: 'A',
-    number: 21,
-    deskNumber: 4,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-3',
-    prefix: 'A',
-    number: 20,
-    deskNumber: 3,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-4',
-    prefix: 'A',
-    number: 19,
-    deskNumber: 2,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-5',
-    prefix: 'A',
-    number: 18,
-    deskNumber: 5,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-6',
-    prefix: 'A',
-    number: 17,
-    deskNumber: 2,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-7',
-    prefix: 'A',
-    number: 16,
-    deskNumber: 1,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-8',
-    prefix: 'A',
-    number: 15,
-    deskNumber: 3,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-];
+const YOUTUBE_VIDEO_ID = "dQw4w9WgXcQ";
 
 function getWeatherConfigFromEnv(): {
   latitude: number;
@@ -102,7 +37,27 @@ export function BoardPage() {
   const [isAudioMuted, setIsAudioMuted] = useState(true);
   const weatherConfig = useMemo(() => getWeatherConfigFromEnv(), []);
 
-  const servingTickets: Ticket[] = servedTickets;
+  const { subscribeToMessages, getQueueState } = useSocketTicket();
+
+  const [servingTickets, setServingTickets] = useState<Ticket[]>([]);
+
+  const handleResponse = useCallback((response: ServerMessage) => {
+    switch (response.type) {
+      case "QUEUE_STATE":
+        setServingTickets(response.payload.state.recentlyServed);
+        break;
+    }
+  }, []);
+
+  useEffect(() => {
+    return subscribeToMessages(handleResponse);
+  }, [subscribeToMessages, handleResponse]);
+
+  useEffect(() => {
+    if (servingTickets.length === 0) {
+      getQueueState();
+    }
+  }, [servingTickets, getQueueState]);
 
   return (
     <div className="grid min-h-[calc(100vh-2rem)] items-stretch gap-6 lg:grid-cols-[1fr_420px] lg:gap-8 sm:min-h-[calc(100vh-3rem)]">
@@ -149,7 +104,7 @@ export function BoardPage() {
                     onClick={() => setIsAudioMuted((prev) => !prev)}
                     aria-pressed={!isAudioMuted}
                   >
-                    {isAudioMuted ? 'Audio: Apagado' : 'Audio: Encendido'}
+                    {isAudioMuted ? "Audio: Apagado" : "Audio: Encendido"}
                   </Button>
                 </div>
               </div>
@@ -194,23 +149,23 @@ export function BoardPage() {
             <div
               key={ticket.id}
               className={[
-                'grid grid-cols-[1fr_92px] items-center gap-3 rounded-2xl bg-black/45 px-4 py-4 ring-1 ring-white/10',
-                index === 0 ? 'bg-sky-500/40 ring-white/20' : '',
-              ].join(' ')}
+                "grid grid-cols-[1fr_92px] items-center gap-3 rounded-2xl bg-black/45 px-4 py-4 ring-1 ring-white/10",
+                index === 0 ? "bg-sky-500/40 ring-white/20" : "",
+              ].join(" ")}
             >
               <div
                 className={[
-                  'font-extrabold tracking-tight text-white tabular-nums',
-                  index === 0 ? 'text-6xl sm:text-7xl' : 'text-5xl sm:text-5xl',
-                ].join(' ')}
+                  "font-extrabold tracking-tight text-white tabular-nums",
+                  index === 0 ? "text-6xl sm:text-7xl" : "text-5xl sm:text-5xl",
+                ].join(" ")}
               >
                 {formatTicketLabel(ticket)}
               </div>
               <div
                 className={[
-                  'text-center font-extrabold tabular-nums',
-                  index === 0 ? 'text-6xl sm:text-7xl' : 'text-5xl sm:text-6xl',
-                ].join(' ')}
+                  "text-center font-extrabold tabular-nums",
+                  index === 0 ? "text-6xl sm:text-7xl" : "text-5xl sm:text-6xl",
+                ].join(" ")}
               >
                 {ticket.deskNumber}
               </div>

@@ -1,14 +1,23 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import type { Ticket } from '../types/ticket';
-import { formatTicketLabel } from '../utils/tickets';
-import { Panel } from '../components/Panel';
-import { Button } from '../components/Button';
-import { PersonIcon } from '../icons/PersonIcon';
-import { PregnantIcon } from '../icons/PregnantIcon';
-import { WheelChairIcon } from '../icons/WheelChairIcon';
-import { ElderlyCoupleIcon } from '../icons/ElderlyCoupleIcon';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import type { Ticket } from "../types/ticket";
+import { formatTicketLabel } from "../utils/tickets";
+import { Panel } from "../components/Panel";
+import { Button } from "../components/Button";
+import { PersonIcon } from "../icons/PersonIcon";
+import { PregnantIcon } from "../icons/PregnantIcon";
+import { WheelChairIcon } from "../icons/WheelChairIcon";
+import { ElderlyCoupleIcon } from "../icons/ElderlyCoupleIcon";
+import { useSocketTicket } from "../hooks/useSocketTickets";
+import type { ServerMessage } from "../types/socket.types";
 
-type TicketRequestVariant = 'normal' | 'preferential';
+type TicketRequestVariant = "normal" | "preferential";
 
 type TicketAssignedModalProps = {
   isOpen: boolean;
@@ -35,19 +44,19 @@ function TicketRequestButton({
 }: TicketRequestButtonProps) {
   const stylesByVariant: Record<TicketRequestVariant, string> = {
     normal:
-      'bg-linear-to-b from-emerald-400/25 to-emerald-400/10 ring-emerald-300/25 hover:from-emerald-400/30 hover:to-emerald-400/15',
+      "bg-linear-to-b from-emerald-400/25 to-emerald-400/10 ring-emerald-300/25 hover:from-emerald-400/30 hover:to-emerald-400/15",
     preferential:
-      'bg-linear-to-b from-amber-400/25 to-amber-400/10 ring-amber-300/25 hover:from-amber-400/30 hover:to-amber-400/15',
+      "bg-linear-to-b from-amber-400/25 to-amber-400/10 ring-amber-300/25 hover:from-amber-400/30 hover:to-amber-400/15",
   };
 
   const glowByVariant: Record<
     TicketRequestVariant,
     { topRight: string; bottomLeft: string }
   > = {
-    normal: { topRight: 'bg-emerald-400/10', bottomLeft: 'bg-sky-400/10' },
+    normal: { topRight: "bg-emerald-400/10", bottomLeft: "bg-sky-400/10" },
     preferential: {
-      topRight: 'bg-amber-400/10',
-      bottomLeft: 'bg-violet-400/10',
+      topRight: "bg-amber-400/10",
+      bottomLeft: "bg-violet-400/10",
     },
   };
 
@@ -58,23 +67,23 @@ function TicketRequestButton({
     <button
       type="button"
       className={[
-        'group relative w-full overflow-hidden rounded-4xl px-10 py-10 text-center ring-1 transition',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
+        "group relative w-full overflow-hidden rounded-4xl px-10 py-10 text-center ring-1 transition",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
         styles,
-      ].join(' ')}
+      ].join(" ")}
       onClick={onClick}
     >
       <div
         className={[
-          'absolute -right-16 -top-16 size-72 rounded-full blur-3xl transition group-hover:opacity-100',
+          "absolute -right-16 -top-16 size-72 rounded-full blur-3xl transition group-hover:opacity-100",
           glow.topRight,
-        ].join(' ')}
+        ].join(" ")}
       />
       <div
         className={[
-          'absolute -bottom-16 -left-16 size-72 rounded-full blur-3xl transition group-hover:opacity-100',
+          "absolute -bottom-16 -left-16 size-72 rounded-full blur-3xl transition group-hover:opacity-100",
           glow.bottomLeft,
-        ].join(' ')}
+        ].join(" ")}
       />
 
       <div className="relative">
@@ -109,18 +118,18 @@ function TicketAssignedModal({
     if (!isOpen) return;
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
+      if (event.key === "Escape") onClose();
     }
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
 
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = previousOverflow;
     };
@@ -166,7 +175,7 @@ function TicketAssignedModal({
               Tu turno
             </div>
             <div className="mt-3 text-6xl font-semibold tracking-tight sm:text-7xl">
-              {ticket ? formatTicketLabel(ticket) : '—'}
+              {ticket ? formatTicketLabel(ticket) : "—"}
             </div>
           </div>
         </Panel>
@@ -176,43 +185,37 @@ function TicketAssignedModal({
 }
 
 export function KioskPage() {
+  const { createTicket, subscribeToMessages } = useSocketTicket();
+
   const [assignedTicket, setAssignedTicket] = useState<Ticket | null>(null);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
 
-  const previewTicketsByVariant: Record<TicketRequestVariant, Ticket> = {
-    normal: {
-      id: 'preview-queue-normal',
-      prefix: 'A',
-      number: 12,
-      deskNumber: 0,
-      createdAt: new Date(),
-      servedAt: null,
-    },
-    preferential: {
-      id: 'preview-queue-preferential',
-      prefix: 'P',
-      number: 3,
-      deskNumber: 0,
-      createdAt: new Date(),
-      servedAt: null,
-    },
-  };
+  const handleResponse = useCallback((response: ServerMessage) => {
+    if (response.type === "TICKET_CREATED") {
+      setAssignedTicket(response.payload.ticket);
+      setIsTicketModalOpen(true);
+      return;
+    }
+  }, []);
+
+  useEffect(() => {
+    return subscribeToMessages(handleResponse);
+  }, [subscribeToMessages, handleResponse]);
 
   function closeTicketModal() {
     setIsTicketModalOpen(false);
   }
 
   function handleRequestTicket(variant: TicketRequestVariant) {
-    setAssignedTicket(previewTicketsByVariant[variant]);
-    setIsTicketModalOpen(true);
+    createTicket(variant === "preferential");
   }
 
   function handleRequestNormalTicket() {
-    handleRequestTicket('normal');
+    handleRequestTicket("normal");
   }
 
   function handleRequestPreferentialTicket() {
-    handleRequestTicket('preferential');
+    handleRequestTicket("preferential");
   }
 
   return (

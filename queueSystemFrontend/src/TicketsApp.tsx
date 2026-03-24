@@ -16,7 +16,7 @@ export default function TicketsApp() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<WelcomePage />} />
             <Route path="/desk/select" element={<DeskSelectPage />} />
-            <Route path="/desk" element={<DeskPage />} />
+            <Route path="/desk/:deskNumber" element={<DeskPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
 

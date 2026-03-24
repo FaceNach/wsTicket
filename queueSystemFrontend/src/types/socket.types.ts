@@ -6,7 +6,7 @@ export type ClientMessage =
   | { type: "CREATE_TICKET"; payload: { isPreferential: boolean } }
   | {
       type: "REQUEST_NEXT_TICKET";
-      payload: { desknumber: number; forceNormalTicket: boolean };
+      payload: { deskNumber: number; forceNormalTicket: boolean };
     }
   | { type: "RESET_QUEUE" };
 
